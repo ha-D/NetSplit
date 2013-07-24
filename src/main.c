@@ -9,15 +9,17 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 
-#include "tuntap.h"
+#include "netdev.h"
 
 char dev[256];
 int main(int argc, char const *argv[]){
-   int tunfd;
-   
-   tunfd = tun_init();
+	int physfd;
+	int tunfd;
 
-   printf("%d\n", tunfd);
-   pause();
-   return 0;
+	tunfd = tun_init();
+	physfd = phys_init();
+
+	printf("%d\n", tunfd);
+	pause();
+	return 0;
 }	

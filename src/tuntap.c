@@ -1,7 +1,5 @@
-#include "tuntap.h"
-#include "log.h"
-#include <unistd.h>
-#include <stdlib.h>
+#include "netdev.h"
+
 
 #define TAP_PERSIST 0
 

@@ -1,11 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -g -DHAVE_PCAP  -Iinclude 
-LDFLAGS =
+LDFLAGS = -lpthread
 LIBS = 
 
 TARGET = tun.out
 
-SOURCES = main.c tuntap.c phys.c
+SOURCES = main.c tuntap.c phys.c thread.c
 OBJ = ${SOURCES:.c=.o}
 
 all: ${TARGET}

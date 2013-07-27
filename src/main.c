@@ -10,6 +10,7 @@
 #include <linux/if_tun.h>
 
 #include "netdev.h"
+#include "bridge.h"
 
 char dev[256];
 int main(int argc, char const *argv[]){
@@ -19,7 +20,8 @@ int main(int argc, char const *argv[]){
 	tunfd = tun_init();
 	physfd = phys_init();
 
-	printf("%d\n", tunfd);
+	init_bridge(physfd, tunfd);
+	
 	pause();
 	return 0;
 }	

@@ -14,14 +14,14 @@
 
 char dev[256];
 int main(int argc, char const *argv[]){
-	int physfd;
-	int tunfd;
+	struct phys_dev* physd;
+	struct tun_dev* tund;
 
-	tunfd = tun_init();
-	physfd = phys_init();
+	tund = tun_init();
+	physd = phys_init();
 
-	init_bridge(physfd, tunfd);
-	
+	init_bridge(physd, tund);
+
 	pause();
 	return 0;
 }	

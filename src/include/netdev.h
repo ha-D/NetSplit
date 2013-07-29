@@ -14,7 +14,18 @@
 
 #include "log.h"
 
+struct phys_dev{
+	int sockfd;
+	struct ifreq if_id;
+	struct ifreq mac;
+};
+
+struct tun_dev{
+	int sockfd;
+	struct ifreq mac;
+};
+
 int tun_alloc(char *dev, int flags);
-int tun_init();
-int phys_init();
+struct tun_dev* tun_init();
+struct phys_dev* phys_init();
 #endif

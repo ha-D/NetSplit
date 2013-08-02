@@ -5,11 +5,30 @@
 struct phys_dev* physd;
 struct tun_dev* tund;
 
-void send_to_tun(char* buf, int read_len){
-	int i;
+void send_to_tun(char* buf, int len){
+	len = write(tund->sockfd, buf, len);
+	if(len < 0){
+		perror("phys_thread send");
+		exit(1);
+	}
+}
+
+int is_ip(char* buf){
+	/* !IMPORTANT Applications seem to recieve IP packets on physical device by default
+		probably gonna have to solve this when IP Spoofing comes into action           */
+	struct ethhdr* eth;
+	eth = (struct ethhdr*)buf;
+	return eth->h_proto == htons(ETH_P_IP);
+}
+
+void phys_to_tun(char* buf, int read_len){
+	int i, send;
 	char* m;
 	struct ethhdr* eth= (struct ethhdr*)buf;
 
+	// Drop Ip packets
+	// if(!is_ip(buf))
+	//    return;
 	m = (char*)tund->mac.ifr_hwaddr.sa_data;		
 	for (i = 0; i < 6; i++)
 		eth->h_dest[i] = m[i];
@@ -19,20 +38,19 @@ void send_to_tun(char* buf, int read_len){
 	for (i = 0; i < 6; i++)
 		eth->h_source[i] = m[i];
 
-	// If pcaket was arp set arp target to tun physical address
-	if(eth->h_proto == htons(ETH_P_ARP)){
-		struct arp_hdr* arp = (struct arp_hdr*)(buf + sizeof(struct ethhdr));
-		for (i = 0; i < 6; i++)
-			arp->target_mac[i] = ((uint8_t *)&tund->mac.ifr_hwaddr.sa_data)[i];
+	send = 1;
+	switch(ntohs(eth->h_proto)){
+		case ETH_P_ARP:
+			send = phys_arp(buf, read_len);
+			break;
+		case ETH_P_IP:
+			send = phys_ip(buf, read_len);
+			break;
 	}
 
-	read_len = write(tund->sockfd, buf, read_len);
-	if(read_len < 0){
-		perror("phys_thread send");
-		exit(1);
-	}
+	if(send)
+		send_to_tun(buf, read_len);
 }
-
 
 int check_phys_packet(struct ethhdr* eth){
 	uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
@@ -50,14 +68,6 @@ int check_phys_packet(struct ethhdr* eth){
 	return 1;
 }
 
-int is_ip(char* buf){
-	/* !IMPORTANT Applications seem to recieve IP packets on physical device by default
-		probably gonna have to solve this when IP Spoofing comes into action           */
-	struct ethhdr* eth;
-	eth = (struct ethhdr*)buf;
-	return eth->h_proto == htons(ETH_P_IP);
-}
-
 void listen_phys(){
 	char buf[BUFLEN];
 	int read_len;
@@ -73,12 +83,9 @@ void listen_phys(){
 
 		if(check_phys_packet((struct ethhdr *)(buf))){
 			DEBUG("bridge", ("received %d bytes on phys\n", read_len));
-
-			// Drop Ip packets
-			if(!is_ip(buf))
-				send_to_tun(buf, read_len);
-		}		
-	}	
+			phys_to_tun(buf, read_len);
+		}
+	}
 }
 
 int check_tun_packet(struct ethhdr* eth){
@@ -102,8 +109,15 @@ int check_tun_packet(struct ethhdr* eth){
 	return 1;
 }
 
-void send_to_phys(char* buf, int read_len){
-	int i;
+void send_to_phys(char* buf, int len, struct sockaddr_ll socket_address){
+	if (sendto(physd->sockfd, buf, len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0){
+		perror("tun_thread send");
+		exit(1);
+	}
+}
+
+void tun_to_phys(char* buf, int read_len){
+	int i, send;
 	struct sockaddr_ll socket_address;
 	char* m;
 
@@ -120,17 +134,18 @@ void send_to_phys(char* buf, int read_len){
 	for (i = 0; i < 6; i++)
 		eth->h_source[i] = m[i];
 
-	// If packet was arp set sender mac in packet to physical device
-	if(eth->h_proto == htons(ETH_P_ARP)){
-		struct arp_hdr* arp = (struct arp_hdr*)(buf + sizeof(struct ethhdr));
-		for (i = 0; i < 6; i++)
-			arp->sender_mac[i] = ((uint8_t *)&physd->mac.ifr_hwaddr.sa_data)[i];
+	send = 1;
+	switch(ntohs(eth->h_proto)){
+		case ETH_P_ARP:
+			send = tun_arp(buf, read_len);
+			break;
+		case ETH_P_IP:
+			send = tun_ip(buf, read_len);
+			break;
 	}
 
-	if (sendto(physd->sockfd, buf, read_len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0){
-		perror("tun_thread send");
-		exit(1);
-	}
+	if(send)
+		send_to_phys(buf, read_len, socket_address);
 }
 
 void listen_tun(){
@@ -152,8 +167,16 @@ void listen_tun(){
 
 		DEBUG("bridge", ("received %d bytes on tun\n", read_len));
 
-		send_to_phys(buf, read_len);
+		tun_to_phys(buf, read_len);
 	}
+}
+
+struct phys_dev* get_phys(){
+	return physd;
+}
+
+struct tun_dev* get_tun(){
+	return tund;
 }
 
 void init_bridge(struct phys_dev* pfd, struct tun_dev* tfd){

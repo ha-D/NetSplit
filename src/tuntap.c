@@ -34,6 +34,8 @@ char dev[256];
 
 struct tun_dev* tun_init(){
     struct tun_dev* tund;
+    struct in_addr ip_addr;
+
     tund = (struct tun_dev*)malloc(sizeof(struct tun_dev));
     strcpy(dev, "mytun");
 
@@ -58,8 +60,10 @@ struct tun_dev* tun_init(){
         exit(1);
     }
 
-    printf("TAP device allocated: %s\n", dev);
+    inet_aton("192.168.1.10", &ip_addr);
+    tund->ip_addr = ip_addr.s_addr;
 
+    printf("TAP device allocated: %s\n", dev);
 
     return tund;
 }

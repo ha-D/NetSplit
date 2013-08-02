@@ -5,7 +5,7 @@ LIBS =
 
 TARGET = tun.out
 
-SOURCES = main.c tuntap.c phys.c thread.c bridge.c
+SOURCES = main.c tuntap.c phys.c thread.c bridge.c prot.c
 OBJ = ${SOURCES:.c=.o}
 
 all: ${TARGET}

@@ -3,9 +3,10 @@
 struct phys_dev* phys_init(){
 	struct phys_dev* physd;
 	struct ifreq ifr;
+	struct in_addr ip_addr;
 	// struct ifreq  ifopts;
 	char* dev = "wlan0";
-	char* m;
+	// char* m;
 
 	physd = (struct phys_dev*)malloc(sizeof(struct phys_dev));
 	physd->sockfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -50,6 +51,9 @@ struct phys_dev* phys_init(){
 	// printf("Physical Device MAC:      %02x:%02x:%02x:%02x:%02x:%02x\n", m[0], m[1], m[2], m[3], m[4], m[5]);
 
 	// DEBUG("phys_dev", ("binded to physical device %s\n", dev));
+
+	inet_aton("192.168.1.63", &ip_addr);
+	physd->ip_addr = ip_addr.s_addr;
 
 	return physd;
 }

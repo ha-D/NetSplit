@@ -18,11 +18,13 @@ struct phys_dev{
 	int sockfd;
 	struct ifreq if_id;
 	struct ifreq mac;
+	uint32_t ip_addr;
 };
 
 struct tun_dev{
 	int sockfd;
 	struct ifreq mac;
+	uint32_t ip_addr;
 };
 
 int tun_alloc(char *dev, int flags);

@@ -11,6 +11,7 @@
 
 #include "netdev.h"
 #include "bridge.h"
+#include "gum.h"
 
 char dev[256];
 int main(int argc, char const *argv[]){
@@ -20,6 +21,7 @@ int main(int argc, char const *argv[]){
 	tund = tun_init();
 	physd = phys_init();
 
+	init_gums();
 	init_bridge(physd, tund);
 
 	pause();

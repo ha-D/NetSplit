@@ -3,7 +3,9 @@
 struct phys_dev* phys_init(){
 	struct phys_dev* physd;
 	struct ifreq ifr;
+	struct ifreq ifrmac;
 	struct in_addr ip_addr;
+	struct gumpck* gum;
 	// struct ifreq  ifopts;
 	char* dev = "wlan0";
 	// char* m;
@@ -40,12 +42,14 @@ struct phys_dev* phys_init(){
     	exit(1);
     }
 
-	memset(&physd->mac, 0, sizeof(struct ifreq));
-	strncpy(physd->mac.ifr_name, dev, IFNAMSIZ-1);
-	if (ioctl(physd->sockfd, SIOCGIFHWADDR, &physd->mac) < 0){
+	memset(&ifrmac, 0, sizeof(struct ifreq));
+	strncpy(ifrmac.ifr_name, dev, IFNAMSIZ-1);
+	if (ioctl(physd->sockfd, SIOCGIFHWADDR, &ifrmac) < 0){
 	    perror("phys_init SIOCGIFHWADDR");
 		exit(1);
 	}
+
+	memcpy(physd->mac, ifrmac.ifr_hwaddr.sa_data, 6);
 	
 	 // m = (char*)physd->mac.ifr_hwaddr.sa_data;
 	// printf("Physical Device MAC:      %02x:%02x:%02x:%02x:%02x:%02x\n", m[0], m[1], m[2], m[3], m[4], m[5]);
@@ -54,6 +58,11 @@ struct phys_dev* phys_init(){
 
 	inet_aton("192.168.1.63", &ip_addr);
 	physd->ip_addr = ip_addr.s_addr;
+
+	// Add the default phys as a gum as well
+	// gum = (struct gumpck*)malloc(sizeof(struct gumpck));
+	// gum->ip = ip_addr.s_addr;
+	// memcpy(gum->mac, physd->mac,)
 
 	return physd;
 }

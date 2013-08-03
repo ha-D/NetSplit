@@ -35,7 +35,7 @@ int phys_arp(char* buf, int len){
 	
 	// If packet was arp set arp target to tun physical address
 	for (i = 0; i < 6; i++)
-		arp->target_mac[i] = ((uint8_t *)&tund->mac.ifr_hwaddr.sa_data)[i];
+		arp->target_mac[i] = tund->mac[i];
 	memcpy(arp->target_ip, (uint8_t*)&tund->ip_addr, 4);	
 	return 1;
 }
@@ -65,7 +65,7 @@ int tun_arp(char* buf, int len){
 
 	// If packet was arp set sender mac in packet to physical device
 	for (i = 0; i < 6; i++)
-		arp->sender_mac[i] = ((uint8_t *)&physd->mac.ifr_hwaddr.sa_data)[i];
+		arp->sender_mac[i] = physd->mac[i];
 	memcpy(arp->sender_ip, (uint8_t*)&physd->ip_addr, 4);	
 
 	return 1;

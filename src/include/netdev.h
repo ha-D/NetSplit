@@ -13,17 +13,18 @@
 #include <stdlib.h>
 
 #include "log.h"
+#include "gum.h"
 
 struct phys_dev{
 	int sockfd;
 	struct ifreq if_id;
-	struct ifreq mac;
+	uint8_t mac[6];
 	uint32_t ip_addr;
 };
 
 struct tun_dev{
 	int sockfd;
-	struct ifreq mac;
+	uint8_t  mac[6];
 	uint32_t ip_addr;
 };
 

@@ -29,12 +29,12 @@ void phys_to_tun(char* buf, int read_len){
 	// Drop Ip packets
 	// if(!is_ip(buf))
 	//    return;
-	m = (char*)tund->mac.ifr_hwaddr.sa_data;		
+	m = (char*)tund->mac;		
 	for (i = 0; i < 6; i++)
 		eth->h_dest[i] = m[i];
 
 	// Set source to physical device to know if it has been forwarded from here in read tun
-	m = (char*)physd->mac.ifr_hwaddr.sa_data;		
+	m = (char*)physd->mac;		
 	for (i = 0; i < 6; i++)
 		eth->h_source[i] = m[i];
 
@@ -56,12 +56,12 @@ int check_phys_packet(struct ethhdr* eth){
 	uint8_t broadcast[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 	// If ethernet source was physical device, drop packet (Huh? when does this happen?)
-	if(memcmp(eth->h_source, physd->mac.ifr_hwaddr.sa_data , 6) == 0){
+	if(memcmp(eth->h_source, physd->mac, 6) == 0){
 		return 0;
 	}
 
 	// If ethernet destination was not physical device address and was not broadcast, drop packet
-	if(memcmp(eth->h_dest, physd->mac.ifr_hwaddr.sa_data , 6) != 0 &&
+	if(memcmp(eth->h_dest, physd->mac, 6) != 0 &&
 		memcmp(eth->h_dest, broadcast, 6) != 0)
 		return 0;
 
@@ -130,7 +130,7 @@ void tun_to_phys(char* buf, int read_len){
 		socket_address.sll_addr[i] = eth->h_dest[i];
 
 	// Set ethernet source address to physical device address
-	m = (char*)physd->mac.ifr_hwaddr.sa_data;		
+	m = (char*)physd->mac;		
 	for (i = 0; i < 6; i++)
 		eth->h_source[i] = m[i];
 

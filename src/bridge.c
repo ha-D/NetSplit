@@ -34,8 +34,8 @@ void phys_to_tun(char* buf, int read_len){
 	// if(eth->h_proto == htons(ETH_P_ARP))
 	// 	PHYSPROM = 1;
 	// else
-		PHYSPROM = 0;
-
+	PHYSPROM = 0;
+	
 	IFPROMPT(PHYSPROM, ("phys packet recieved, print? y/n\n"), 'y'){
 		print_eth(buf, 1);
 	}
@@ -103,7 +103,7 @@ void listen_phys(){
 		}
 
 		if(check_phys_packet((struct ethhdr *)(buf))){
-			// DEBUG("bridge", ("received %d bytes on phys\n", read_len));
+			DEBUG("bridge", ("received %d bytes on phys\n", read_len));
 			phys_to_tun(buf, read_len);
 		}
 	}

@@ -26,31 +26,39 @@ unsigned short checksum(unsigned short *addr, int len)
 int phys_arp(char* buf, int len){
 	int i;
 	struct arp_hdr* arp;
-	struct ethhdr* eth;
+	//struct ethhdr* eth;
 	struct tun_dev* tund;
+	struct phys_dev* physd;
 
 	tund = get_tun();
-	eth = (struct ethhdr*)(buf);
+	physd = get_phys();
+	//eth = (struct ethhdr*)(buf);
 	arp = (struct arp_hdr*)(buf + sizeof(struct ethhdr));
 	
 	if(arp->opcode == htons(ARP_REQUEST)){
+		printf("ARP REQUEST FOUND\n");
 		struct gumpck gum;
 		if(gum_lookup(arp->target_ip, &gum) == 0){
+			printf("OURS\n");
 			// Send arp reply
 			char arpbuf[sizeof(struct ethhdr) + sizeof(struct arp_hdr) + 2];
 			struct ethhdr* replyeth = (struct ethhdr*)arpbuf;
 			struct arp_hdr* replyarp = (struct arp_hdr*)(arpbuf + sizeof(struct ethhdr));
 
 			memcpy(arpbuf, buf, len);
-			memcpy(replyeth->h_source, eth->h_dest, 6);
-			memcpy(replyeth->h_dest, eth->h_source, 6);
-			memcpy(replyarp->sender_mac, arp->target_mac, 6);
+			memcpy(replyeth->h_source, physd->mac, 6);
+			memcpy(replyeth->h_dest, arp->sender_mac, 6);
+			memcpy(replyarp->sender_mac, physd->mac, 6);
 			memcpy(replyarp->target_mac, arp->sender_mac, 6);
 			replyarp->target_ip = arp->sender_ip;
 			replyarp->sender_ip = arp->target_ip;
 			replyarp->opcode = htons(ARP_REPLY);
 
 			send_to_phys(arpbuf, len);
+		}else{
+			struct in_addr addr;
+			addr.s_addr = arp->target_ip;
+			printf("DAMN %s\n", inet_ntoa(addr));
 		}
 		// arp request shouldn't be forwarded to tun
 		return 0;

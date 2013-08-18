@@ -1,5 +1,5 @@
 #include "gum.h"
-
+#include <stdio.h>
 #define GUMMAP_LEN 100
 
 struct mapgum{
@@ -21,27 +21,32 @@ struct gumpck* gum_list(){
 
 int gum_lookup(uint32_t ip, struct gumpck* gum){
 	struct mapgum* mgum;
+//	struct in_addr addr;
+//	addr.s_addr = ip;
 	mgum = gum_map[hash(ip)];
+//	printf("--> %s %d\n", inet_ntoa(addr), ip);
 	while(mgum != 0){
 		if(mgum->gumpck->ip == ip){
 			memcpy(gum, mgum->gumpck, sizeof(struct gumpck));
 			return 0;
 		}
+		mgum = mgum->next_mapgum;
 	}
 	return -1;
 }
 
 void gum_add(struct gumpck* gum){
 	struct mapgum *mgum, *newmgum;
-
-	if(first_gum == 0)
+	struct in_addr addr;
+	addr.s_addr = gum->ip;
+	if(first_gum == 0)	
 		first_gum = last_gum = gum;
 	else{
 		last_gum->next = gum;
 		last_gum = gum;
 	}
 	gum->next = 0;
-
+	printf("-> %s %d\n", inet_ntoa(addr), gum->ip);
 	newmgum = (struct mapgum*)malloc(sizeof(struct mapgum));
 	newmgum->gumpck = gum;
 	newmgum->next_mapgum = 0;

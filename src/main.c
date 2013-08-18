@@ -18,10 +18,10 @@ int main(int argc, char const *argv[]){
 	struct phys_dev* physd;
 	struct tun_dev* tund;
 
+	init_gums();
 	tund = tun_init();
 	physd = phys_init();
 
-	init_gums();
 	init_bridge(physd, tund);
 
 	pause();

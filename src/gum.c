@@ -1,5 +1,5 @@
 #include "gum.h"
-
+#include <stdio.h>
 #define GUMMAP_LEN 100
 
 struct mapgum{
@@ -29,6 +29,7 @@ int gum_lookup(uint32_t ip, struct gumpck* gum){
 			memcpy(gum, mgum->gumpck, sizeof(struct gumpck));
 			return 0;
 		}
+		mgum = mgum->next_mapgum;
 	}
 	return -1;
 }
@@ -44,7 +45,6 @@ void gum_add(struct gumpck* gum){
 		last_gum = gum;
 	}
 	gum->next = 0;
-
 	newmgum = (struct mapgum*)malloc(sizeof(struct mapgum));
 	newmgum->gumpck = gum;
 	newmgum->next_mapgum = 0;

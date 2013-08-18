@@ -18,7 +18,7 @@ int main(int argc, char const *argv[]){
 	struct phys_dev* physd;
 	struct tun_dev* tund;
 
-	// Init gums before devices (atleast as long as adding gums in phys)
+	// Init gums before devices (for gum adding and map initializing)
 	init_gums();
 
 	tund = tun_init();

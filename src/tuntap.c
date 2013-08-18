@@ -35,6 +35,8 @@ char dev[256];
 struct tun_dev* tun_init(){
     struct tun_dev* tund;
     struct in_addr ip_addr;
+    struct ifreq ifrmac;
+    // char* m;
 
     tund = (struct tun_dev*)malloc(sizeof(struct tun_dev));
     strcpy(dev, "mytun");
@@ -53,12 +55,18 @@ struct tun_dev* tun_init(){
         exit(1);
     }
 
-    memset(&tund->mac, 0, sizeof(struct ifreq));
-    strncpy(tund->mac.ifr_name, dev, IFNAMSIZ-1);
-    if (ioctl(tund->sockfd, SIOCGIFHWADDR, &tund->mac) < 0){
+    memset(&ifrmac, 0, sizeof(struct ifreq));
+    strncpy(ifrmac.ifr_name, dev, IFNAMSIZ-1);
+    if (ioctl(tund->sockfd, SIOCGIFHWADDR, &ifrmac) < 0){
         perror("tun_init SIOCGIFHWADDR");
         exit(1);
     }
+
+    memcpy(tund->mac, ifrmac.ifr_hwaddr.sa_data, 6);
+
+
+    // m = (char*)ifrmac.ifr_hwaddr.sa_data;
+    // printf("TUN Device MAC:      %02x:%02x:%02x:%02x:%02x:%02x\n", m[0], m[1], m[2], m[3], m[4], m[5]);
 
     inet_aton("192.168.1.10", &ip_addr);
     tund->ip_addr = ip_addr.s_addr;

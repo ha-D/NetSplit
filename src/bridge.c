@@ -1,6 +1,7 @@
 #include "bridge.h"
 
 #define BUFLEN 4096
+// #define TUNPROM 1
 
 struct phys_dev* physd;
 struct tun_dev* tund;
@@ -16,6 +17,7 @@ void send_to_tun(char* buf, int len){
 int is_ip(char* buf){
 	/* !IMPORTANT Applications seem to recieve IP packets on physical device by default
 		probably gonna have to solve this when IP Spoofing comes into action           */
+	/* Solved by not giving ip to physical device */
 	struct ethhdr* eth;
 	eth = (struct ethhdr*)buf;
 	return eth->h_proto == htons(ETH_P_IP);
@@ -24,7 +26,19 @@ int is_ip(char* buf){
 void phys_to_tun(char* buf, int read_len){
 	int i, send;
 	char* m;
-	struct ethhdr* eth= (struct ethhdr*)buf;
+	struct ethhdr* eth;
+	int PHYSPROM;
+
+	eth = (struct ethhdr*)buf;
+
+	// if(eth->h_proto == htons(ETH_P_ARP))
+	// 	PHYSPROM = 1;
+	// else
+		PHYSPROM = 0;
+
+	IFPROMPT(PHYSPROM, ("phys packet recieved, print? y/n\n"), 'y'){
+		print_eth(buf, 1);
+	}
 
 	// Drop Ip packets
 	// if(!is_ip(buf))
@@ -48,8 +62,15 @@ void phys_to_tun(char* buf, int read_len){
 			break;
 	}
 
-	if(send)
-		send_to_tun(buf, read_len);
+	IFPROMPT(PHYSPROM, ("print altered phys packet? y/n\n"), 'y'){
+		print_eth(buf, 1);
+	}
+
+	IFPROMPT(PHYSPROM, ("send to tun? y/n\n"), 'n'){
+	}else{
+		if(send)
+			send_to_tun(buf, read_len);
+	}
 }
 
 int check_phys_packet(struct ethhdr* eth){
@@ -82,7 +103,7 @@ void listen_phys(){
 		}
 
 		if(check_phys_packet((struct ethhdr *)(buf))){
-			DEBUG("bridge", ("received %d bytes on phys\n", read_len));
+			// DEBUG("bridge", ("received %d bytes on phys\n", read_len));
 			phys_to_tun(buf, read_len);
 		}
 	}
@@ -109,7 +130,20 @@ int check_tun_packet(struct ethhdr* eth){
 	return 1;
 }
 
-void send_to_phys(char* buf, int len, struct sockaddr_ll socket_address){
+void send_to_phys(char* buf, int len){
+	struct sockaddr_ll socket_address;
+	struct ethhdr* eth;
+	int i;
+
+	eth= (struct ethhdr*)buf;
+	socket_address.sll_ifindex = physd->if_id.ifr_ifindex;
+	socket_address.sll_halen = ETH_ALEN;
+
+
+	// Take gateway mac address from ethernet packet
+	for (i = 0; i < 6; i++)	
+		socket_address.sll_addr[i] = eth->h_dest[i];
+
 	if (sendto(physd->sockfd, buf, len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0){
 		perror("tun_thread send");
 		exit(1);
@@ -118,21 +152,26 @@ void send_to_phys(char* buf, int len, struct sockaddr_ll socket_address){
 
 void tun_to_phys(char* buf, int read_len){
 	int i, send;
-	struct sockaddr_ll socket_address;
+	// struct sockaddr_ll socket_address;
 	char* m;
+	struct ethhdr* eth;
+	int TUNPROM;
+	eth = (struct ethhdr*)buf;
 
-	socket_address.sll_ifindex = physd->if_id.ifr_ifindex;
-	socket_address.sll_halen = ETH_ALEN;
-	struct ethhdr* eth= (struct ethhdr*)buf;
+	// if(eth->h_proto == htons(ETH_P_IP))
+	// 	TUNPROM = 1;
+	// else
+		TUNPROM = 0;
 
-	// Take gateway mac address from ethernet packet
-	for (i = 0; i < 6; i++)
-		socket_address.sll_addr[i] = eth->h_dest[i];
+	IFPROMPT(TUNPROM, ("tun packet recieved, print? y/n\n"), 'y'){
+		print_eth(buf, 1);
+	}
 
 	// Set ethernet source address to physical device address
 	m = (char*)physd->mac;		
 	for (i = 0; i < 6; i++)
 		eth->h_source[i] = m[i];
+
 
 	send = 1;
 	switch(ntohs(eth->h_proto)){
@@ -144,8 +183,15 @@ void tun_to_phys(char* buf, int read_len){
 			break;
 	}
 
-	if(send)
-		send_to_phys(buf, read_len, socket_address);
+	IFPROMPT(TUNPROM, ("print altered tun packet? y/n\n"), 'y'){
+		print_eth(buf, 1);
+	}
+
+	IFPROMPT(TUNPROM, ("send to phys? y/n\n"), 'n'){
+	}else{
+		if(send)
+			send_to_phys(buf, read_len);
+	}
 }
 
 void listen_tun(){

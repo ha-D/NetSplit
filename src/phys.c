@@ -59,10 +59,11 @@ struct phys_dev* phys_init(){
 	inet_aton("192.168.1.63", &ip_addr);
 	physd->ip_addr = ip_addr.s_addr;
 
-	// Add the default phys as a gum as well
-	// gum = (struct gumpck*)malloc(sizeof(struct gumpck));
-	// gum->ip = ip_addr.s_addr;
-	// memcpy(gum->mac, physd->mac,)
+	// Add the default phys as a gum
+	gum = (struct gumpck*)malloc(sizeof(struct gumpck));
+	gum->ip = ip_addr.s_addr;
+	memcpy(gum->mac, physd->mac, 6);
+	gum_add(gum);
 
 	return physd;
 }

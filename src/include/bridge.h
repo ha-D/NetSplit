@@ -20,6 +20,9 @@ void init_bridge(struct phys_dev* pfd, struct tun_dev* tfd);
 struct phys_dev* get_phys();
 struct tun_dev* get_tun();
 
+void send_to_phys(char* buf, int len);
+void send_to_tun(char* buf, int len);
+
 int phys_arp(char* buf, int len);
 int phys_ip(char* buf, int len);
 

@@ -7,6 +7,8 @@ struct mapgum{
 	struct mapgum* next_mapgum;
 };
 
+void init_gum_management();
+
 struct gumpck* first_gum;
 struct gumpck* last_gum;
 struct mapgum* gum_map[GUMMAP_LEN];
@@ -34,9 +36,10 @@ int gum_lookup(uint32_t ip, struct gumpck* gum){
 void gum_add(struct gumpck* gum){
 	struct mapgum *mgum, *newmgum;
 
-	if(first_gum == 0)
-		first_gum = last_gum = gum;
-	else{
+	if(first_gum == 0){
+		first_gum = gum;
+		last_gum = gum;
+	}else{
 		last_gum->next = gum;
 		last_gum = gum;
 	}
@@ -65,4 +68,47 @@ void init_gums(){
 	}
 	first_gum = 0;
 	last_gum = 0;
+
+	init_gum_management();
+}
+
+
+/* Gum Management */
+
+#define GUM_HASH_SIZE 100000
+
+struct gumhash{
+	struct gumpck* gum;
+	time_t access_time;
+};
+
+struct gumhash gumtable[GUM_HASH_SIZE];
+struct gumpck* next;	
+
+void init_gum_management(){
+	memset(gumtable, 0, GUM_HASH_SIZE * sizeof(struct gumhash));
+	next = 0;
+}
+
+/*
+* Assign a gum to the given hash
+*/
+struct gumpck* set_assigned_gum(uint32_t hash){
+	/* Round Robin gum allocation */
+	if(next == 0)
+		next = gum_list();
+	gumtable[hash].gum = next;
+	next = next->next;
+	return gumtable[hash].gum;
+}
+
+/*
+*	Return a gum assined with the given hash
+*/
+struct gumpck* get_assigned_gum(uint32_t hash){
+	hash = hash % GUM_HASH_SIZE;
+	if(gumtable[hash].gum == 0)
+		set_assigned_gum(hash);
+	gumtable[hash].access_time = time(0);
+	return gumtable[hash].gum;
 }

@@ -23,6 +23,22 @@ unsigned short checksum(unsigned short *addr, int len)
     return (answer);
 }
 
+/*
+ * Hash packet based on ip adresses and port numbers (for gum allocation)
+*/ 
+uint32_t hash_ip_packet(struct iphdr* ip){
+	uint32_t ip_part =  (ip->saddr & 0x0ffffff) + (ip->daddr & 0x0ffffff);
+	if(ip->protocol == IPPROTO_TCP){
+		struct tcphdr* tcp = (struct tcphdr*)((char*)ip + sizeof(struct iphdr));
+		return ip_part + tcp->dest + tcp->source;
+	}else if(ip->protocol == IPPROTO_UDP){
+		struct udphdr* udp = (struct udphdr*)((char*)ip + sizeof(struct iphdr));
+		return ip_part + udp->dest + udp->source;
+	}else{
+		return ip_part;
+	}
+}
+
 int phys_arp(char* buf, int len){
 	int i;
 	struct arp_hdr* arp;
@@ -65,13 +81,15 @@ int phys_arp(char* buf, int len){
 
 int phys_ip(char* buf, int len){
 	struct iphdr* ip;
-	struct tun_dev* tund;
+	struct tun_dev* tund;	
 
 	tund = get_tun();
 	ip = (struct iphdr*)(buf + sizeof(struct ethhdr));
 
+
 	// If packet was ip set ip destination to tun address
 	ip->daddr = tund->ip_addr;
+
 
 	ip->check = 0;
 	ip->check = checksum((unsigned short*)ip, ip->ihl * 4);
@@ -94,15 +112,23 @@ int tun_arp(char* buf, int len){
 	return 1;
 }
 
+
 int tun_ip(char* buf, int len){
 	struct iphdr* ip;
-	struct phys_dev* physd;
+	//struct phys_dev* physd;
+	struct gumpck* gum;
+	uint32_t hash;
 
-	physd = get_phys();
+	//physd = get_phys();
 	ip = (struct iphdr*)(buf + sizeof(struct ethhdr));
 	
+	hash = hash_ip_packet(ip);
+	gum = get_assigned_gum(hash);
+
 	// If packet was ip, set source ip to phys dev ip
-	ip->saddr = physd->ip_addr;
+	//ip->saddr = physd->ip_addr;
+
+	ip->saddr = gum->ip;
 
 	ip->check = 0;
 	ip->check = checksum((unsigned short*)ip, ip->ihl * 4);

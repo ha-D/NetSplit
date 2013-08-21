@@ -15,5 +15,5 @@
 #include "proto/ip.h"
 
 
-char* create_udp(struct udphdr** udp, int* len);
+char* create_udp(struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len);
 #endif

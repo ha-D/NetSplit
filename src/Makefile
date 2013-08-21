@@ -5,7 +5,7 @@ LIBS =
 
 TARGET = tun.out
 
-SOURCES = main.c tuntap.c phys.c thread.c bridge.c bridgeproto.c gum.c packet.c proto/eth.c proto/ip.c proto/udp.c
+SOURCES = main.c tuntap.c phys.c thread.c bridge.c bridgeproto.c gum/gum.c gum/gumdhcp.c packet.c proto/eth.c proto/ip.c proto/udp.c proto/dhcp
 OBJ = ${SOURCES:.c=.o}
 
 all: ${TARGET}

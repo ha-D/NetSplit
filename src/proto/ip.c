@@ -22,7 +22,7 @@ unsigned short checksum_ip(unsigned short *addr, int len){
     return (answer);
 }
 
-char* create_ip(struct iphdr** ip, int* len){
+char* create_ip(struct iphdr** ip, struct ethhdr** eth, int* len){
 	char* buf;
 	struct iphdr* buf_ip;
 	struct ethhdr* buf_eth;
@@ -43,6 +43,8 @@ char* create_ip(struct iphdr** ip, int* len){
 
 	if(ip != 0)
 		(*ip) = buf_ip;
+	if(eth != 0)
+		(*eth) = buf_eth;
 
 	return buf;
 }

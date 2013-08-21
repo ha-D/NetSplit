@@ -15,6 +15,6 @@
 
 
 unsigned short checksum_ip(unsigned short *addr, int len);
-char* create_ip(struct iphdr** ip, int* len);
+char* create_ip(struct iphdr** ip, struct ethhdr** eth, int* len);
 
 #endif

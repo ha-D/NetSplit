@@ -6,14 +6,6 @@
 struct phys_dev* physd;
 struct tun_dev* tund;
 
-void send_to_tun(char* buf, int len){
-	len = write(tund->sockfd, buf, len);
-	if(len < 0){
-		perror("phys_thread send");
-		exit(1);
-	}
-}
-
 int is_ip(char* buf){
 	/* !IMPORTANT Applications seem to recieve IP packets on physical device by default
 		probably gonna have to solve this when IP Spoofing comes into action           */
@@ -69,7 +61,7 @@ void phys_to_tun(char* buf, int read_len){
 	IFPROMPT(PHYSPROM, ("send to tun? y/n\n"), 'n'){
 	}else{
 		if(send)
-			send_to_tun(buf, read_len);
+			send_to_tun(tund, buf, read_len);
 	}
 }
 
@@ -130,25 +122,6 @@ int check_tun_packet(struct ethhdr* eth){
 	return 1;
 }
 
-void send_to_phys(char* buf, int len){
-	struct sockaddr_ll socket_address;
-	struct ethhdr* eth;
-	int i;
-
-	eth= (struct ethhdr*)buf;
-	socket_address.sll_ifindex = physd->if_id.ifr_ifindex;
-	socket_address.sll_halen = ETH_ALEN;
-
-
-	// Take gateway mac address from ethernet packet
-	for (i = 0; i < 6; i++)	
-		socket_address.sll_addr[i] = eth->h_dest[i];
-
-	if (sendto(physd->sockfd, buf, len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0){
-		perror("tun_thread send");
-		exit(1);
-	}
-}
 
 void tun_to_phys(char* buf, int read_len){
 	int i, send;
@@ -190,7 +163,7 @@ void tun_to_phys(char* buf, int read_len){
 	IFPROMPT(TUNPROM, ("send to phys? y/n\n"), 'n'){
 	}else{
 		if(send)
-			send_to_phys(buf, read_len);
+			send_to_phys(physd, buf, read_len);
 	}
 }
 

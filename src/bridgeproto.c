@@ -46,7 +46,7 @@ int phys_arp(char* buf, int len){
 			replyarp->sender_ip = arp->target_ip;
 			replyarp->opcode = htons(ARP_REPLY);
 
-			send_to_phys(arpbuf, len);
+			send_to_phys(physd, arpbuf, len);
 		}
 		// arp request shouldn't be forwarded to tun
 		return 0;

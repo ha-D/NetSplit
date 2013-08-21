@@ -99,8 +99,8 @@ int tun_alloc(char *dev, int flags) {
     return fd;
 }
 
-
 char dev[256];
+
 struct tun_dev* tun_init(){
     struct tun_dev* tund;
     struct in_addr ip_addr;
@@ -143,4 +143,32 @@ struct tun_dev* tun_init(){
     printf("TAP device allocated: %s\n", dev);
 
     return tund;
+}
+
+void send_to_phys(struct phys_dev* physd, char* buf, int len){
+    struct sockaddr_ll socket_address;
+    struct ethhdr* eth;
+    int i;
+
+    eth= (struct ethhdr*)buf;
+    socket_address.sll_ifindex = physd->if_id.ifr_ifindex;
+    socket_address.sll_halen = ETH_ALEN;
+
+
+    // Take gateway mac address from ethernet packet
+    for (i = 0; i < 6; i++) 
+        socket_address.sll_addr[i] = eth->h_dest[i];
+
+    if (sendto(physd->sockfd, buf, len, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0){
+        perror("tun_thread send");
+        exit(1);
+    }
+}
+
+void send_to_tun(struct tun_dev* tund, char* buf, int len){
+    len = write(tund->sockfd, buf, len);
+    if(len < 0){
+        perror("phys_thread send");
+        exit(1);
+    }
 }

@@ -11,6 +11,12 @@
 #include <linux/if_tun.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <linux/if_packet.h>
+#include <linux/ip.h>
+#include <stdlib.h>
+#include <errno.h>
+
+
 
 #include "log.h"
 #include "gum.h"
@@ -31,4 +37,12 @@ struct tun_dev{
 int tun_alloc(char *dev, int flags);
 struct tun_dev* tun_init();
 struct phys_dev* phys_init();
+
+
+struct phys_dev* get_phys();
+struct tun_dev* get_tun();
+
+void send_to_phys(struct phys_dev* physd, char* buf, int len);
+void send_to_tun(struct tun_dev* tund, char* buf, int len);
+
 #endif

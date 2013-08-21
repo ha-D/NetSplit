@@ -1,27 +1,5 @@
 #include "bridge.h"
 
-unsigned short checksum(unsigned short *addr, int len)
-{
-    register int sum = 0;
-    u_short answer = 0;
-    register u_short *w = addr;
-    register int nleft = len;
-
-    while (nleft > 1){
-      sum += *w++;
-      nleft -= 2;
-    }
-
-    if (nleft == 1){
-      *(u_char *) (&answer) = *(u_char *) w;
-      sum += answer;
-    }
-
-    sum = (sum >> 16) + (sum & 0xffff);    
-    sum += (sum >> 16);          
-    answer = ~sum;            
-    return (answer);
-}
 
 /*
  * Hash packet based on ip adresses and port numbers (for gum allocation)
@@ -52,10 +30,8 @@ int phys_arp(char* buf, int len){
 	arp = (struct arp_hdr*)(buf + sizeof(struct ethhdr));
 	
 	if(arp->opcode == htons(ARP_REQUEST)){
-		printf("ARP REQUEST FOUND\n");
 		struct gumpck gum;
 		if(gum_lookup(arp->target_ip, &gum) == 0){
-			printf("OURS\n");
 			// Send arp reply
 			char arpbuf[sizeof(struct ethhdr) + sizeof(struct arp_hdr) + 2];
 			struct ethhdr* replyeth = (struct ethhdr*)arpbuf;
@@ -71,10 +47,6 @@ int phys_arp(char* buf, int len){
 			replyarp->opcode = htons(ARP_REPLY);
 
 			send_to_phys(arpbuf, len);
-		}else{
-			struct in_addr addr;
-			addr.s_addr = arp->target_ip;
-			printf("DAMN %s\n", inet_ntoa(addr));
 		}
 		// arp request shouldn't be forwarded to tun
 		return 0;
@@ -100,7 +72,7 @@ int phys_ip(char* buf, int len){
 
 
 	ip->check = 0;
-	ip->check = checksum((unsigned short*)ip, ip->ihl * 4);
+	ip->check = checksum_ip((unsigned short*)ip, ip->ihl * 4);
 	return 1;
 }
 
@@ -139,6 +111,6 @@ int tun_ip(char* buf, int len){
 	ip->saddr = gum->ip;
 
 	ip->check = 0;
-	ip->check = checksum((unsigned short*)ip, ip->ihl * 4);
+	ip->check = checksum_ip((unsigned short*)ip, ip->ihl * 4);
 	return 1;
 }

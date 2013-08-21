@@ -16,6 +16,7 @@
 #include "netdev.h"
 #include "packet.h"
 #include "gum.h"
+#include "proto/ip.h"
 
 void init_bridge(struct phys_dev* pfd, struct tun_dev* tfd);
 

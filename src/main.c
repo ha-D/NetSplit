@@ -11,11 +11,15 @@
 
 #include "netdev.h"
 #include "bridge.h"
+#include "gum.h"
 
 char dev[256];
 int main(int argc, char const *argv[]){
 	struct phys_dev* physd;
 	struct tun_dev* tund;
+
+	// Init gums before devices (for gum adding and map initializing)
+	init_gums();
 
 	tund = tun_init();
 	physd = phys_init();

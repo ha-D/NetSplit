@@ -60,7 +60,8 @@ struct phys_dev* phys_init(){
 
     // DEBUG("phys_dev", ("binded to physical device %s\n", dev));
 
-    inet_aton("192.168.1.68", &ip_addr);
+    //inet_aton("192.168.1.68", &ip_addr);
+    inet_aton("213.233.171.16", &ip_addr);
     physd->ip_addr = ip_addr.s_addr;
 
     // Add the default phys as a gum

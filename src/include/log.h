@@ -4,6 +4,8 @@
 #include "color.h"
 #include <stdio.h>
 
+#define DEBUG_ON 0
+
 #define LOGD(message) CHANGECOL(COL_BLUE) printf("log: "); CHANGECOL(COL_DEF) printf message;
 #define LOG(title, message) CHANGECOL(COL_BLUE) printf("%s: ", title); CHANGECOL(COL_DEF) printf message;
 

@@ -70,6 +70,7 @@ void init_gums(){
 	last_gum = 0;
 
 	init_gum_management();
+	init_gum_dhcp();
 }
 
 

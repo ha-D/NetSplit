@@ -13,11 +13,11 @@
 #include "bridge.h"
 #include "gum.h"
 
+
 char dev[256];
 int main(int argc, char const *argv[]){
 	struct phys_dev* physd;
 	struct tun_dev* tund;
-
 	// Init gums before devices (for gum adding and map initializing)
 	init_gums();
 
@@ -26,6 +26,10 @@ int main(int argc, char const *argv[]){
 
 	init_bridge(physd, tund);
 	
+	printf("Enter a key to send dhcp request\n");
+	sleep(3);
+	gum_dhcp_discover(physd);
+	printf("SENT\n");
 	pause();
 	return 0;
 }	

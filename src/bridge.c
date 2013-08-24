@@ -85,7 +85,7 @@ void listen_phys(){
 	char buf[BUFLEN];
 	int read_len;
 
-	DEBUG("bridge", ("phys to tun bridge started\n"));
+//	DEBUG("bridge", ("phys to tun bridge started\n"));
 	while(1){
 		read_len = recvfrom(physd->sockfd, buf, BUFLEN-1, 0, NULL, NULL);
 
@@ -95,7 +95,7 @@ void listen_phys(){
 		}
 
 		if(check_phys_packet((struct ethhdr *)(buf))){
-			DEBUG("bridge", ("received %d bytes on phys\n", read_len));
+			//DEBUG("bridge", ("received %d bytes on phys\n", read_len));
 			phys_to_tun(buf, read_len);
 		}
 	}
@@ -184,7 +184,7 @@ void listen_tun(){
 			continue;
 		}
 
-		DEBUG("bridge", ("received %d bytes on tun\n", read_len));
+//		DEBUG("bridge", ("received %d bytes on tun\n", read_len));
 
 		tun_to_phys(buf, read_len);
 	}

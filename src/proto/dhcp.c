@@ -1,41 +1,51 @@
 #include "proto/dhcp.h"
 
-void dhcp_add_option(struct dhcphdr** dhcp, struct dhcpoption* option, int* len){
-	char* buf;
+void dhcp_add_option(char** buf, struct dhcpoption* option, int* offset, int* len){
+	char* new_buf;
+	if(*len < *offset + option->size + 2){
+		new_buf = (char*)malloc(*offset + option->size + 2);
+		memcpy(new_buf, *buf, *len);
+		*len = *offset + option->size + 2;
+		free(*buf);
 
-	buf = (char*)malloc(*len + option->size + 2);
+		*buf = new_buf;
+	}
 
-	memcpy(buf, *dhcp, *len);
-	memcpy(buf, option, option->size + 2);
-
-	free(*dhcp);
-
-	*dhcp = (struct dhcphdr*)buf;
-	*len = *len + option->size + 2;
+	memcpy(*buf + *offset, option, option->size + 2);
+	*offset = *offset + option->size + 2;
 }
 
-char* create_dhcp_discover(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len, struct dhcp_args* args){
-	char* buf;
+int dhcp_read_option(char* buf, struct dhcpoption* option, int* offset, int len){
+	if(*offset >= len)
+		return -1;
+	
+	option->opt_num = buf[*offset++];
+	option->size    = buf[*offset++];
+	memcpy((char*)option + 2, buf + *offset, option->size);
+	*offset += option->size;
+
+	return 0;
+}
+
+char* create_dhcp(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len){
+	char* buf;	
 	struct ethhdr* buf_eth;
 	struct iphdr* buf_ip;
 	struct udphdr* buf_udp;
 	struct dhcphdr* buf_dhcp;
-	struct dhcpoption_53 option_53;
-	struct dhcpoption* option_param;
-	struct dhcpoption_255 option_255;
 	
 
-	if(*len < sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dhcphdr))
-		*len  = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + sizeof(struct dhcphdr);
+	if(*len < sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + DHCP_MIN_SIZE)
+		*len  = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) + DHCP_MIN_SIZE;
 	buf = create_udp(&buf_udp, &buf_ip, &buf_eth, len);
-
+	buf_dhcp = (struct dhcphdr*)(buf + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr));
 
 	buf_dhcp->op = 0x01;
 	buf_dhcp->htype = 0x01;
 	buf_dhcp->hlen = 0x06;
 	buf_dhcp->hops = 0x00;
 
-	buf_dhcp->xid = rand();
+	//buf_dhcp->xid = rand();
 	buf_dhcp->secs = 0x00;
 	buf_dhcp->flags = 0x00;
 
@@ -44,49 +54,15 @@ char* create_dhcp_discover(struct dhcphdr** dhcp, struct udphdr** udp, struct ip
 	buf_dhcp->server_addr  = 0x0;
 	buf_dhcp->gateway_addr = 0x0;
 
-	memcpy(buf_dhcp->client_haddr, args->mac, 6);
+
 
 	buf_dhcp->magic_cookie = 0x63825383;
 
-	/* Options */
-	option_53.opt_num = 53;
-	option_53.size = 1;
-	option_53.dhcp = 3;
-	dhcp_add_option(&buf_dhcp, (struct dhcpoption*)&option_53, len);
-
-	// Requested Ip
-	if(args->has_req_ip){
-		struct dhcpoption_50 option_50;
-		option_50.opt_num = 50;
-		option_50.size = 4;
-		option_50.req_ip = args->req_ip;
-		dhcp_add_option(&buf_dhcp, (struct dhcpoption*)&option_50, len);
-	}
-
-	/* Params */
-	option_param = (struct dhcpoption*) malloc(sizeof(struct dhcpoption) + 7);
-	option_param->opt_num = 55;
-	option_param->size = 7;
-	*((char*)option_param + 1) = (char)DHCP_PARAM_SUBNETMASK;
-	*((char*)option_param + 2) = (char)DHCP_PARAM_BROADCAST;
-	*((char*)option_param + 3) = (char)DHCP_PARAM_TIMEOFFSET;
-	*((char*)option_param + 4) = (char)DHCP_PARAM_ROUTER;
-	*((char*)option_param + 5) = (char)DHCP_PARAM_DOMAIN;
-	*((char*)option_param + 6) = (char)DHCP_PARAM_DNS;
-	*((char*)option_param + 7) = (char)DHCP_PARAM_HOST;
-	dhcp_add_option(&buf_dhcp, option_param, len);
-	free(option_param);
-
-	option_255.opt_num = 255;
-	option_255.size = 0;
-	dhcp_add_option(&buf_dhcp, (struct dhcpoption*)&option_255, len);
-
-	/* End Options */
 
 	/* Lower Protocols */
 
 	memset(buf_eth->h_dest, 0xff, 6);
-	memcpy(buf_eth->h_source, args->mac, 6);
+
 
 	buf_ip->saddr = 0;
 	buf_ip->daddr = 0xffffffff;
@@ -105,5 +81,56 @@ char* create_dhcp_discover(struct dhcphdr** dhcp, struct udphdr** udp, struct ip
 	if(eth != 0)
 		*eth = buf_eth;
 	
+	return buf;
+}
+
+char* create_dhcp_discover(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len, struct dhcp_args* args){
+	char* buf;
+	struct dhcphdr* buf_dhcp;
+	struct ethhdr* buf_eth;
+	struct dhcpoption_53 type_option;
+
+	buf = create_dhcp(&buf_dhcp, udp, ip, &buf_eth, len);
+
+	buf_dhcp->xid = rand();
+	memcpy(buf_dhcp->client_haddr, args->mac, 6);
+	memcpy(buf_eth->h_source, args->mac, 6);	
+
+	type_option.opt_num = 53;
+	type_option.size = 1;
+	type_option.dhcp = DHCP_TYPE_DISCOVER;
+	dhcp_add_option(&buf, (struct dhcpoption*)&type_option, &args->option_offset, len);	
+
+	if(dhcp != 0)
+		*dhcp = buf_dhcp;
+	if(eth != 0)
+		*eth = buf_eth;
+
+	return buf;
+}
+
+char* create_dhcp_request(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len, struct dhcp_args* args){
+	char* buf;
+	struct dhcphdr* buf_dhcp;
+	struct ethhdr* buf_eth;
+	struct dhcpoption_53 type_option;
+
+	buf = create_dhcp(&buf_dhcp, udp, ip, &buf_eth, len);
+
+	buf_dhcp->xid = args->xid;
+	buf_dhcp->server_addr = args->server_addr;
+	memcpy(buf_dhcp->client_haddr, args->mac, 6);
+	memcpy(buf_eth->h_source, args->mac, 6);	
+
+	type_option.opt_num = 53;
+	type_option.size = 1;
+	type_option.dhcp = DHCP_TYPE_REQUEST;
+	dhcp_add_option(&buf, (struct dhcpoption*)&type_option, &args->option_offset, len);	
+
+	if(dhcp != 0)
+		*dhcp = buf_dhcp;
+	if(eth != 0)
+		*eth = buf_eth;
+
 	return buf;
 }

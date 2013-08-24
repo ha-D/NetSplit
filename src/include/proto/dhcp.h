@@ -11,12 +11,11 @@
 #include <errno.h>
 
 
-#include "thread.h"
 #include "log.h"
 #include "netdev.h"
-#include "packet.h"
-#include "gum.h"
 #include "proto/udp.h"
+
+#define DHCP_MIN_SIZE 300
 struct dhcphdr{
 	uint8_t op;
 	uint8_t htype;
@@ -35,9 +34,12 @@ struct dhcphdr{
 }__attribute__ ((packed));
 
 struct dhcp_args{
+	int option_offset; // Changes
 	uint8_t mac[6];
 	uint8_t has_req_ip;
 	uint32_t req_ip;
+	uint32_t xid;
+	uint32_t server_addr;
 }__attribute__ ((packed));
 
 /* Options */
@@ -50,27 +52,44 @@ struct dhcp_args{
 #define DHCP_PARAM_DOMAIN 15
 #define DHCP_PARAM_BROADCAST 28
 
+
 struct dhcpoption{
+#define DHCP_OPTION_TYPE 53
 	uint8_t opt_num;
 	uint8_t size;
+	uint8_t padding[4];
 }__attribute__ ((packed));
 
-struct dhcpoption_53{
+struct dhcpoption_53{	// DHCP TYPE 
 	uint8_t opt_num;
 	uint8_t size;
+#define DHCP_TYPE_DISCOVER 1
+#define DHCP_TYPE_OFFER    2
+#define DHCP_TYPE_REQUEST  3
+#define DHCP_TYPE_ACK 	   5
 	uint8_t dhcp;
-};
+}__attribute__ ((packed));;
 
-struct dhcpoption_50{
+struct dhcpoption_50{  // REQ IP ADDRESS
 	uint8_t opt_num;
 	uint8_t size;
 	uint32_t req_ip;
-};
+}__attribute__ ((packed));
+
+struct dhcpoption_54{  // Server Identifier
+	uint8_t opt_num;
+	uint8_t size;
+	uint32_t server;
+}__attribute__ ((packed));
 
 struct dhcpoption_255{  // End
 	uint8_t opt_num;
 	uint8_t size;
-};
+}__attribute__ ((packed));;
+
+void dhcp_add_option(char** buf, struct dhcpoption* option, int* offset, int* len);
+int dhcp_read_option(char* buf, struct dhcpoption* option, int* offset, int len);
 
 char* create_dhcp_discover(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len, struct dhcp_args* args);
+char* create_dhcp_request(struct dhcphdr** dhcp, struct udphdr** udp, struct iphdr** ip, struct ethhdr** eth, int* len, struct dhcp_args* args);
 #endif

@@ -66,6 +66,8 @@ int phys_ip(char* buf, int len){
 	tund = get_tun();
 	ip = (struct iphdr*)(buf + sizeof(struct ethhdr));
 
+	if(ip->protocol == IPPROTO_UDP && !phys_udp(buf, len))
+		return 0;
 
 	// If packet was ip set ip destination to tun address
 	ip->daddr = tund->ip_addr;
@@ -74,6 +76,29 @@ int phys_ip(char* buf, int len){
 	ip->check = 0;
 	ip->check = checksum_ip((unsigned short*)ip, ip->ihl * 4);
 	return 1;
+}
+
+int phys_udp(char* buf, int len){
+	struct udphdr* udp;
+
+	udp = (struct udphdr*)(buf + sizeof(struct ethhdr) + sizeof(struct iphdr));
+
+	if(udp->dest == htons(68))  /* DHCP Port */
+		return phys_dhcp(buf, len);
+	
+	return 1;
+}
+
+int phys_dhcp(char* buf, int len){
+	//struct dhcphdr* dhcp;
+	//struct phys_dev* physd;
+
+	//physd = get_phys();
+	//dhcp = (struct dhcphdr*)(buf + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr));
+
+	gum_handle_dhcp(buf, len);
+
+	return 0;
 }
 
 int tun_arp(char* buf, int len){
